@@ -4,7 +4,7 @@ This is an advanced command and control tool for managing PHP web shells. It pro
 
 ## Features
 
-- **Encrypted Communication**: All traffic between the controller and shell is encrypted using AES-256-CBC with HMAC integrity verification
+- **Encrypted Communication**: All traffic between the controller and shell is encrypted
 - **Multiple Transport Methods**: Supports communication via HTTP headers, POST data, and GET parameters
 - **Interactive Shell**: Provides an interactive command-line interface to the remote system
 - **File Management**: Browse, upload, download, and edit files on the remote system
