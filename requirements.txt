@@ -1,0 +1,4 @@
+requests>=2.25.1
+pycryptodome>=3.10.1
+colorama>=0.4.4
+tabulate>=0.8.9

