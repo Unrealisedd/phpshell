@@ -89,19 +89,18 @@ class ShellController:
         compressed = zlib.compress(data.encode('utf-8'))
         
         # Base64 encode the compressed content
-        encoded = base64.b64encode(compressed).decode('utf-8')
+        encoded = base64.b64encode(compressed)
         
         # Get key bytes
         key_bytes = hashlib.sha256(self.base_key.encode()).digest()
         
-        # XOR encryption
-        encrypted = []
-        for i, char in enumerate(encoded):
-            key_char = key_bytes[i % len(key_bytes)]
-            encrypted.append(chr(ord(char) ^ key_char))
+        # XOR encryption - working directly with bytes
+        encrypted = bytearray()
+        for i in range(len(encoded)):
+            encrypted.append(encoded[i] ^ key_bytes[i % len(key_bytes)])
         
         # Return base64 encoded result
-        return base64.b64encode(''.join(encrypted).encode('utf-8')).decode('utf-8')
+        return base64.b64encode(encrypted).decode('utf-8')
 
     def _decrypt(self, data):
         """Decrypt data using XOR with SHA256 hash of key and decompression"""
@@ -112,11 +111,10 @@ class ShellController:
             # Get key bytes
             key_bytes = hashlib.sha256(self.base_key.encode()).digest()
             
-            # XOR decryption
-            decrypted = ''
+            # XOR decryption - working directly with bytes
+            decrypted = bytearray()
             for i in range(len(encrypted)):
-                key_char = key_bytes[i % len(key_bytes)]
-                decrypted += chr(ord(encrypted[i]) ^ key_char)
+                decrypted.append(encrypted[i] ^ key_bytes[i % len(key_bytes)])
             
             # Decode base64 and decompress
             decompressed = zlib.decompress(base64.b64decode(decrypted))
@@ -126,6 +124,8 @@ class ShellController:
         except Exception as e:
             print(f"{Fore.RED}Decryption error: {str(e)}")
             return None
+
+
 
 
 

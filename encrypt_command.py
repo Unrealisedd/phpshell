@@ -11,19 +11,19 @@ def encrypt_command(command, key):
     compressed = zlib.compress(command.encode('utf-8'))
     
     # Base64 encode the compressed content
-    encoded = base64.b64encode(compressed).decode('utf-8')
+    encoded = base64.b64encode(compressed)
     
     # Get key bytes for XOR encryption
     key_bytes = hashlib.sha256(key.encode()).digest()
     
-    # XOR encryption
-    encrypted = []
-    for i, char in enumerate(encoded):
-        key_char = key_bytes[i % len(key_bytes)]
-        encrypted.append(chr(ord(char) ^ key_char))
+    # XOR encryption - directly on bytes, not on string
+    encrypted = bytearray()
+    for i in range(len(encoded)):
+        encrypted.append(encoded[i] ^ key_bytes[i % len(key_bytes)])
     
     # Return base64 encoded result
-    return base64.b64encode(''.join(encrypted).encode('utf-8')).decode('utf-8')
+    return base64.b64encode(encrypted).decode('utf-8')
+
 
 def main():
     parser = argparse.ArgumentParser(description='Encrypt a command for PHP shell testing')
