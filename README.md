@@ -1,4 +1,4 @@
-# PHP Web Shell Controller
+# PHP Web Shell Controller - QUICK NOTE: CUSTOM COMMANDS DONT WORK YET, ITS PURELY A SHELL FOR NOW
 
 This is an advanced command and control tool for managing PHP web shells. It provides a comprehensive set of features for interacting with deployed PHP shells, managing files, executing commands, and maintaining persistence.
 
